@@ -46,12 +46,12 @@ export const createUser = async (req, res) => {
 export const updateProfileUser = async (req, res) => {
   try {
     const { _id } = req.user;
-    const user = await User.findByIdAndUpdate(_id, req.body, {new: true});
+    const user = await User.findByIdAndUpdate(_id, req.body, {new: true, runValidators: true, context: 'query'});
     if (!user) throw new Error("not found");
     res.status(200).send(user);
   }
   catch (err) {
-    if (err.name === 'CastError') {
+    if (err.name === 'ValidationError') {
       res.status(400).send({ message: 'Невалидные данные', ...err })
     } else if (err.message === 'not found') {
       res.status(404).send({ message: 'Запрашиваемый пользователь не найден' })
