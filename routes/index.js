@@ -6,5 +6,17 @@ const routes = express.Router();
 
 routes.use('/users', usersRoutes)
 routes.use('/cards', cardsRoutes)
+routes.patch('/*', (req, res) => {
+  try {
+    res.status(200).send(req)
+  } catch (err) {
+    console.log(err.name);
+    if (err.name === 'TypeError') {
+      res.status(404).send({ message: 'Неправильный путь' })
+    } else {
+      res.status(500).send({ message: 'Ошибка на сервере' })
+    }
+  }
+})
 
 export default routes;
