@@ -10,7 +10,6 @@ routes.patch('/*', (req, res) => {
   try {
     res.status(200).send(req)
   } catch (err) {
-    console.log(err.name);
     if (err.name === 'TypeError') {
       res.status(404).send({ message: 'Неправильный путь' })
     } else {
