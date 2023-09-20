@@ -1,21 +1,13 @@
 import express from 'express';
-import usersRoutes from './users.js';
-import cardsRoutes from './cards.js';
+import usersRoutes from './users';
+import cardsRoutes from './cards';
 
 const routes = express.Router();
 
-routes.use('/users', usersRoutes)
-routes.use('/cards', cardsRoutes)
-routes.patch('/*', (req, res) => {
-  try {
-    res.status(200).send(req)
-  } catch (err) {
-    if (err.name === 'TypeError') {
-      res.status(404).send({ message: 'Неправильный путь' })
-    } else {
-      res.status(500).send({ message: 'Ошибка на сервере' })
-    }
-  }
-})
+routes.use('/users', usersRoutes);
+routes.use('/cards', cardsRoutes);
+routes.use('/*', (req, res) => {
+  res.status(404).send({ message: 'Неправильный путь' });
+});
 
 export default routes;

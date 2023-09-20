@@ -1,12 +1,14 @@
 import express from 'express';
-import { createUser, getUserById, getUsers, updateProfileUser, updateAvatarUser} from '../controllers/users.js';
+import {
+  createUser, getUserById, getUsers, updateProfileUser, updateAvatarUser,
+} from '../controllers/users';
 
 const usersRoutes = express.Router();
 
 usersRoutes.get('/', getUsers);
 usersRoutes.get('/:userId', getUserById);
-usersRoutes.post('/', express.json(), createUser);
-usersRoutes.patch('/me', express.json(), updateProfileUser);
-usersRoutes.patch('/me/avatar', express.json(), updateAvatarUser);
+usersRoutes.post('/', createUser);
+usersRoutes.patch('/me', updateProfileUser);
+usersRoutes.patch('/me/avatar', updateAvatarUser);
 
 export default usersRoutes;
