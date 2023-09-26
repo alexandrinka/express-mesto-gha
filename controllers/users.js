@@ -1,74 +1,97 @@
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import User from '../models/User';
+import NotFoundError from '../errors/not-found-err';
+import InvalidRequest from '../errors/invalid-request';
+import NotAutorization from '../errors/not-autorization';
 
-export const getUsers = async (req, res) => {
+export const getUsers = async (req, res, next) => {
   try {
     const users = await User.find({});
     res.status(200).send(users);
   } catch (err) {
-    res.status(500).send({ message: 'Ошибка на сервере' });
+    next(err);
   }
 };
 
-export const getUserById = async (req, res) => {
+export const getUserById = async (req, res, next) => {
   try {
     const { userId } = req.params;
     const user = await User.findById(userId);
-    if (!user) throw new Error('not found');
+    if (!user) throw new NotFoundError('Запрашиваемый пользователь не найден');
     res.status(200).send(user);
   } catch (err) {
     if (err.name === 'CastError') {
-      res.status(400).send({ message: 'Невалидные данные', ...err });
-    } else if (err.message === 'not found') {
-      res.status(404).send({ message: 'Запрашиваемый пользователь не найден' });
+      next(new InvalidRequest('Неправильные данные'));
     } else {
-      res.status(500).send({ message: 'Ошибка на сервере' });
+      next(err);
     }
   }
 };
 
-export const createUser = async (req, res) => {
+export const createUser = async (req, res, next) => {
+  const { email, password } = req.body;
   try {
+    if (!email || !password) throw new InvalidRequest('Неправильный адрес электронной почты или пароль');
+    const hash = await bcrypt.hash(password, 10);
+    req.body.password = hash;
     const newUser = await User.create(req.body);
     res.status(201).send(await newUser.save());
   } catch (err) {
     if (err.name === 'ValidationError') {
-      res.status(400).send({ message: 'Невалидные данные', ...err });
+      next(new InvalidRequest('Неправильный адрес электроной почты или пароль'));
     } else {
-      res.status(500).send({ message: 'Ошибка на сервере' });
+      next(err);
     }
   }
 };
 
-export const updateProfileUser = async (req, res) => {
+export const login = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) throw new NotAutorization('Неправильный адрес электронной почты или пароль');
+    const user = await User.findOne({ email }).select('+password');
+    if (!user) throw new NotAutorization('Неправильный адрес электронной почты или пароль');
+
+    const result = await bcrypt.compare(password, user.password);
+    if (!result) throw new NotAutorization('Неправильный адрес электронной почты или пароль');
+
+    const payload = { _id: user._id };
+    const token = jwt.sign(payload, '!q8AcиПььaqЙ', { expiresIn: '1w' });
+
+    res.send({ token });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateProfileUser = async (req, res, next) => {
   try {
     const { _id } = req.user;
     const user = await User.findByIdAndUpdate(_id, req.body, { new: true, runValidators: true, context: 'query' });
-    if (!user) throw new Error('not found');
+    if (!user) throw new InvalidRequest('Запрашиваемый пользователь не найден');
     res.send(user);
   } catch (err) {
     if (err.name === 'ValidationError') {
-      res.status(400).send({ message: 'Невалидные данные', ...err });
-    } else if (err.message === 'not found') {
-      res.status(404).send({ message: 'Запрашиваемый пользователь не найден' });
+      next(new InvalidRequest('Неправильные данные'));
     } else {
-      res.status(500).send({ message: 'Ошибка на сервере' });
+      next(err);
     }
   }
 };
 
-export const updateAvatarUser = async (req, res) => {
+export const updateAvatarUser = async (req, res, next) => {
   try {
     const { _id } = req.user;
     const user = await User.findByIdAndUpdate(_id, req.body, { new: true });
-    if (!user) throw new Error('not found');
+    if (!user) throw new InvalidRequest('Запрашиваемый пользователь не найден');
     res.send(user);
   } catch (err) {
-    if (err.name === 'CastError') {
-      res.status(400).send({ message: 'Невалидные данные', ...err });
-    } else if (err.message === 'not found') {
-      res.status(404).send({ message: 'Запрашиваемый пользователь не найден' });
+    if (err.name === 'ValidationError') {
+      next(new InvalidRequest('Неправильные данные'));
     } else {
-      res.status(500).send({ message: 'Ошибка на сервере' });
+      next(err);
     }
   }
 };
