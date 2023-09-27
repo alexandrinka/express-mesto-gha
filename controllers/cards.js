@@ -1,6 +1,7 @@
 import Card from '../models/Card';
 import NotFoundError from '../errors/not-found-err';
 import InvalidRequest from '../errors/invalid-request';
+import NoRight from '../errors/no-right';
 
 export const getCards = async (req, res, next) => {
   try {
@@ -13,10 +14,11 @@ export const getCards = async (req, res, next) => {
 
 export const deleteCardById = async (req, res, next) => {
   try {
-    const noRightError = new Error('Данный пользователь не может удалить эту карточку');
-    noRightError.statusCode = 403;
-    if (req.params.cardId !== req.user._id) throw noRightError;
+    const { _id } = req.user;
     const { cardId } = req.params;
+    const checkRight = await Card.findOne({ owner: { _id }, _id: cardId });
+    if (!checkRight) throw new NoRight('Данный пользователь не может удалить эту карточку');
+
     const card = await Card.findByIdAndRemove(cardId);
     if (!card) throw new NotFoundError('Запрашиваемая карточка не найдена');
     res.status(200).send(card);

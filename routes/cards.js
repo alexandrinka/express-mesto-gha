@@ -1,4 +1,5 @@
 import express from 'express';
+import { celebrate, Joi } from 'celebrate';
 
 import {
   createCard, deleteCardById, getCards, likeCard, dislikeCard,
@@ -8,7 +9,12 @@ const usersRoutes = express.Router();
 
 usersRoutes.get('/', getCards);
 usersRoutes.delete('/:cardId', deleteCardById);
-usersRoutes.post('/', createCard);
+usersRoutes.post('/', celebrate({
+  body: Joi.object().keys({
+    name: Joi.string().min(2).max(30).required(),
+    link: Joi.string().required().regex(/https?:\/\/(www)?[\w-]{1,32}\.[\w-]{1,32}[^\s@]*$/),
+  }),
+}), createCard);
 usersRoutes.put('/:cardId/likes', likeCard);
 usersRoutes.delete('/:cardId/likes', dislikeCard);
 

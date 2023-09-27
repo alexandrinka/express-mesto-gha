@@ -1,11 +1,12 @@
 import jwt from 'jsonwebtoken';
+import NotAutorization from '../errors/not-autorization';
 
 const { JsonWebTokenError } = jwt;
 
 const checkAuthentication = async (req, res, next) => {
   try {
     const { authorization } = req.headers;
-    if (!authorization || !authorization.startsWith('Bearer ')) throw new Error('not authorized');
+    if (!authorization || !authorization.startsWith('Bearer ')) throw new NotAutorization('Не авторизован');
 
     const token = authorization.split(' ')[1];
     const parsedToken = await jwt.verify(token, '!q8AcиПььaqЙ');
@@ -18,11 +19,9 @@ const checkAuthentication = async (req, res, next) => {
     }
   } catch (err) {
     if (err instanceof JsonWebTokenError) {
-      res.status(401).send({ message: 'Не авторизован' });
-    } else if (err.message === 'not authorized') {
-      res.status(401).send({ message: 'Не авторизован' });
+      next(new NotAutorization('Не авторизован'));
     } else {
-      res.status(500).send({ message: 'Ошибка на сервере' });
+      next(err);
     }
   }
 };

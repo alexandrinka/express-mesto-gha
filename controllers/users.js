@@ -4,11 +4,21 @@ import User from '../models/User';
 import NotFoundError from '../errors/not-found-err';
 import InvalidRequest from '../errors/invalid-request';
 import NotAutorization from '../errors/not-autorization';
+import UserAuthorized from '../errors/user-autorized';
 
 export const getUsers = async (req, res, next) => {
   try {
     const users = await User.find({});
     res.status(200).send(users);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    res.status(200).send(user);
   } catch (err) {
     next(err);
   }
@@ -34,12 +44,13 @@ export const createUser = async (req, res, next) => {
   try {
     if (!email || !password) throw new InvalidRequest('Неправильный адрес электронной почты или пароль');
     const hash = await bcrypt.hash(password, 10);
-    req.body.password = hash;
-    const newUser = await User.create(req.body);
-    res.status(201).send(await newUser.save());
+    const { _id } = await User.create({ email, password: hash });
+    res.status(201).send({ _id });
   } catch (err) {
     if (err.name === 'ValidationError') {
       next(new InvalidRequest('Неправильный адрес электроной почты или пароль'));
+    } else if (err.code === 11000) {
+      next(new UserAuthorized('Пользователь с таким email уже зарегистрирован'));
     } else {
       next(err);
     }

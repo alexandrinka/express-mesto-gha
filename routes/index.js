@@ -2,22 +2,29 @@ import express from 'express';
 import { celebrate, Joi } from 'celebrate';
 import usersRoutes from './users';
 import cardsRoutes from './cards';
-import checkAuthentication from '../middlewares/auth';
+import auth from '../middlewares/auth';
+import NotFoundError from '../errors/not-found-err';
+import { login, createUser } from '../controllers/users';
 
 const routes = express.Router();
 
-routes.use('/users', checkAuthentication, celebrate({
+routes.post('/signup', celebrate({
   body: Joi.object().keys({
-    name: Joi.string().min(2).max(30),
-    about: Joi.string().min(2).max(30),
-    avatar: Joi.string().regex(/(https)?:\/\/(www)?[0-9a-z\-._~:/?#[]@!$&'()*\+,;=]+#?$/),
     email: Joi.string().required().email(),
     password: Joi.string().required(),
   }),
-}), usersRoutes);
-routes.use('/cards', checkAuthentication, cardsRoutes);
-routes.use('/*', (req, res) => {
-  res.status(404).send({ message: 'Неправильный путь' });
+}), createUser);
+routes.post('/signin', celebrate({
+  body: Joi.object().keys({
+    email: Joi.string().required().email(),
+    password: Joi.string().required(),
+  }),
+}), login);
+routes.use(auth);
+routes.use('/users', usersRoutes);
+routes.use('/cards', cardsRoutes);
+routes.use('/*', (req, res, next) => {
+  next(new NotFoundError('Неправильный путь'));
 });
 
 export default routes;

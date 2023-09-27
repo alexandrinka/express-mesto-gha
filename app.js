@@ -3,8 +3,9 @@ import express from 'express';
 import mongoose from 'mongoose';
 import * as dotenv from 'dotenv';
 import celebrate from 'celebrate';
+import rateLimit from 'express-rate-limit';
 import routes from './routes/index';
-import { login, createUser } from './controllers/users';
+import errorHandler from './middlewares/error-handler';
 
 dotenv.config();
 
@@ -13,21 +14,19 @@ const { PORT = 3000, MONGO_URL = 'mongodb://127.0.0.1:27017/mestodb' } = process
 
 app.use(helmet());
 
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 100,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+});
+app.use(limiter);
+
 app.use(express.json());
-app.post('/signin', login);
-app.post('/signup', createUser);
 app.use(routes);
 
 app.use(celebrate.errors());
-app.use((err, req, res, next) => {
-  if (err.code === 11000) {
-    res.status(409).send({ message: 'Пользователь с таким email уже зарегистрирован' });
-  } else {
-    res.status(err.statusCode).send({ message: err.message });
-  }
-  res.status(500).send({ message: 'На сервере произошла ошибка' });
-  next();
-});
+app.use(errorHandler);
 
 async function connect() {
   await mongoose.connect(MONGO_URL);
