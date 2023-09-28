@@ -8,7 +8,11 @@ const usersRoutes = express.Router();
 
 usersRoutes.get('/', getUsers);
 usersRoutes.get('/me', getUser);
-usersRoutes.get('/:userId', getUserById);
+usersRoutes.get('/:userId', celebrate({
+  params: Joi.object().keys({
+    userId: Joi.string().length(24).hex().required(),
+  }),
+}), getUserById);
 usersRoutes.patch('/me', celebrate({
   body: Joi.object().keys({
     name: Joi.string().min(2).max(30),
